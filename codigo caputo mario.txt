@@ -1,369 +1,865 @@
 package mario;
 
+
+
 import javax.swing.*;
+
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+
+import java.awt.event.*;
+
 import java.awt.image.BufferedImage;
+
 import javax.imageio.ImageIO;
+
 import java.io.File;
+
 import java.io.IOException;
+
+import java.io.InputStream;
+
 import java.util.ArrayList;
+
 import java.util.List;
 
-// Clase para representar obstáculos móviles
+
+
 class MovingObstacle extends Rectangle {
+
     float velocity;
+
     float min, max;
+
     boolean isHorizontal;
 
+
+
     MovingObstacle(int x, int y, int width, int height, float min, float max, float velocity, boolean isHorizontal) {
+
         super(x, y, width, height);
+
         this.min = min;
+
         this.max = max;
+
         this.velocity = velocity;
+
         this.isHorizontal = isHorizontal;
+
     }
+
+
 
     void update() {
+
         if (isHorizontal) {
+
             x += velocity;
+
             if (x <= min || x >= max) {
+
                 velocity = -velocity;
+
             }
+
         } else {
+
             y += velocity;
+
             if (y <= min || y >= max) {
+
                 velocity = -velocity;
+
             }
+
         }
+
     }
+
 }
 
+
+
 public class JuegoAventuras extends JPanel implements ActionListener, KeyListener {
+
     static final int WIDTH = 1280;
+
     private static final int HEIGHT = 600;
+
     private static final int FLOOR_HEIGHT = 230;
-    private static final int PLAYER_SIZE = 60; 
+
+    private static final int PLAYER_SIZE = 60;
+
     private static final int OBSTACLE_SIZE = 30;
+
     private static final int GOAL_SIZE = 50;
+
     private static final float GRAVITY = 1f;
+
     private static final float JUMP_STRENGTH = 16f;
+
     private static final float MAX_SPEED_X = 7f;
+
     private static final float ACCELERATION_X = 1f;
+
     private static final float DECELERATION_X = 1f;
+
     static final int MAP_WIDTH = 1600;
 
+
+
     private Timer timer;
+
     private float playerX = 0;
+
     private float playerY = HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE;
+
     private float playerSpeedX = 0;
+
     private float velocityY = 0;
+
     private boolean jumping = false;
+
     private int level = 1;
 
+
+
     private List<Rectangle> obstacles;
+
     private Rectangle goal;
+
     private boolean movingLeft = false;
+
     private boolean movingRight = false;
+
     private int lives = 3;
+
     private boolean gameWon = false;
+
     private boolean gameOver = false;
 
+
+
     private BufferedImage backgroundImage;
+
     private BufferedImage obstacleImage;
+
     private BufferedImage heartImage;
+
     private BufferedImage playerImageStand;
+
     private BufferedImage playerImageLeft;
+
     private BufferedImage playerImageRight;
+
     private BufferedImage playerImageJump;
 
+
+
     private boolean inKnockback = false;
+
     private int knockbackDuration = 0;
+
     private static final int MAX_KNOCKBACK_DURATION = 20;
 
+
+
+    // Variables para el menú
+
+    private boolean inMenu = true;
+
+    private int menuSelection = 0;
+
+    private BufferedImage menuBackgroundImage;
+
+    private Font pixelFont;
+
+
+
     public JuegoAventuras() {
+
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
-        setBackground(Color.cyan);
+
+        setBackground(Color.BLACK);
+
         setFocusable(true);
+
         addKeyListener(this);
 
+
+
         obstacles = new ArrayList<>();
+
         initializeLevel(level);
 
-        try {
-            backgroundImage = ImageIO.read(new File("E:\\mario\\src\\mario\\fondo.png"));
-            obstacleImage = ImageIO.read(new File("E:\\mario\\src\\mario\\pincho.png"));
-            heartImage = ImageIO.read(new File("E:\\mario\\src\\mario\\corazon.png"));
-            playerImageStand = ImageIO.read(new File("E:\\mario\\src\\mario\\personaje.png"));
-            playerImageLeft = ImageIO.read(new File("E:\\mario\\src\\mario\\izquierda.png"));
-            playerImageRight = ImageIO.read(new File("E:\\mario\\src\\mario\\derecha.png"));
-            playerImageJump = ImageIO.read(new File("E:\\mario\\src\\mario\\saltar.png"));
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Error al cargar las imágenes.");
-        }
+
+
+        loadImages();
+
+        loadFont();
+
+
 
         timer = new Timer(20, this);
+
         timer.start();
+
     }
 
-    private void initializeLevel(int level) {
-        obstacles.clear();
 
-        switch (level) {
-            case 1:
-                obstacles.add(new Rectangle(600, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                obstacles.add(new Rectangle(800, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                obstacles.add(new Rectangle(1000, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                obstacles.add(new Rectangle(1200, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                obstacles.add(new Rectangle(1400, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                obstacles.add(new Rectangle(1600, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                break;
-            case 2:
-                int startX = 300;
-                int obstacleHeight = OBSTACLE_SIZE;
-                int groundY = HEIGHT - FLOOR_HEIGHT - OBSTACLE_SIZE - 55; // Ajustar altura para los obstáculos
-                int range = 50; // Rango de movimiento vertical
 
-                for (int i = 0; i < 10; i++) {
-                    obstacles.add(new MovingObstacle(
-                        startX + i * (OBSTACLE_SIZE + 70), // Espaciado horizontal
-                        groundY - obstacleHeight, // Ajustar posición inicial más arriba
-                        OBSTACLE_SIZE,
-                        OBSTACLE_SIZE,
-                        groundY - range, // Límite inferior del movimiento
-                        groundY + range, // Límite superior del movimiento
-                        2, // Velocidad vertical
-                        false // Movimiento vertical
-                    ));
-                }
-                break;
-            case 3:
-                obstacles.add(new Rectangle(800, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
-                break;
+    private void loadImages() {
+
+        try {
+
+            backgroundImage = ImageIO.read(new File("E:\\mario\\src\\mario\\fondo.png"));
+
+            obstacleImage = ImageIO.read(new File("E:\\mario\\src\\mario\\pincho.png"));
+
+            heartImage = ImageIO.read(new File("E:\\mario\\src\\mario\\corazon.png"));
+
+            playerImageStand = ImageIO.read(new File("E:\\mario\\src\\mario\\personaje.png"));
+
+            playerImageLeft = ImageIO.read(new File("E:\\mario\\src\\mario\\izquierda.png"));
+
+            playerImageRight = ImageIO.read(new File("E:\\mario\\src\\mario\\derecha.png"));
+
+            playerImageJump = ImageIO.read(new File("E:\\mario\\src\\mario\\saltar.png"));
+
+            menuBackgroundImage = ImageIO.read(new File("E:\\mario\\src\\mario\\final.png"));
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+
+            System.out.println("Error al cargar las imágenes.");
+
         }
 
-        goal = new Rectangle(MAP_WIDTH - GOAL_SIZE, HEIGHT - FLOOR_HEIGHT - GOAL_SIZE, GOAL_SIZE, GOAL_SIZE);
     }
 
+
+
+    private void loadFont() {
+
+        try {
+
+            InputStream is = getClass().getResourceAsStream("/mario/Fuente_retro.ttf");
+
+            pixelFont = Font.createFont(Font.TRUETYPE_FONT, is).deriveFont(25f);
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            pixelFont = new Font("Arial", Font.PLAIN, 40);
+
+        }
+
+    }
+
+
+
+    private void initializeLevel(int level) {
+
+        obstacles.clear();
+
+
+
+        switch (level) {
+
+            case 1:
+
+                for (int i = 0; i < 6; i++) {
+
+                    obstacles.add(new Rectangle(600 + i * 200, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
+
+                }
+
+                break;
+
+            case 2:
+
+                int startX = 300;
+
+                int obstacleHeight = OBSTACLE_SIZE;
+
+                int groundY = HEIGHT - FLOOR_HEIGHT - OBSTACLE_SIZE - 55;
+
+                int range = 50;
+
+
+
+                for (int i = 0; i < 10; i++) {
+
+                    obstacles.add(new MovingObstacle(
+
+                        startX + i * (OBSTACLE_SIZE + 70),
+
+                        groundY - obstacleHeight,
+
+                        OBSTACLE_SIZE,
+
+                        OBSTACLE_SIZE,
+
+                        groundY - range,
+
+                        groundY + range,
+
+                        2,
+
+                        false
+
+                    ));
+
+                }
+
+                break;
+
+            case 3:
+
+                obstacles.add(new Rectangle(800, HEIGHT - FLOOR_HEIGHT - 50, 50, 50));
+
+                break;
+
+        }
+
+
+
+        goal = new Rectangle(MAP_WIDTH - GOAL_SIZE, HEIGHT - FLOOR_HEIGHT - GOAL_SIZE, GOAL_SIZE, GOAL_SIZE);
+
+    }
+
+
+
     @Override
+
     protected void paintComponent(Graphics g) {
+
         super.paintComponent(g);
+
+
+
+        if (inMenu) {
+
+            paintMenu(g);
+
+        } else {
+
+            paintGame(g);
+
+        }
+
+    }
+
+
+
+    private void paintMenu(Graphics g) {
+
+        if (menuBackgroundImage != null) {
+
+            g.drawImage(menuBackgroundImage, 0, 0, getWidth(), getHeight(), this);
+
+        }
+
+
+
+        g.setFont(pixelFont);
+
+        FontMetrics metrics = g.getFontMetrics(pixelFont);
+
+
+
+        String iniciarTexto = "Iniciar Juego";
+
+        String salirTexto = "Salir";
+
+
+
+        int iniciarX = (getWidth() - metrics.stringWidth(iniciarTexto)) / 2;
+
+        int salirX = (getWidth() - metrics.stringWidth(salirTexto)) / 2;
+
+
+
+        g.setColor(menuSelection == 0 ? new Color(0xff5721) : Color.WHITE);
+
+        g.drawString(iniciarTexto, iniciarX, 400);
+
+
+
+        g.setColor(menuSelection == 1 ? new Color(0xff5721) : Color.WHITE);
+
+        g.drawString(salirTexto, salirX, 500);
+
+    }
+
+
+
+    private void paintGame(Graphics g) {
 
         int mapOffsetX = Math.max(0, Math.min((int) (playerX - WIDTH / 2), MAP_WIDTH - WIDTH));
 
+
+
         if (backgroundImage != null) {
+
             g.drawImage(backgroundImage, -mapOffsetX, 0, MAP_WIDTH, HEIGHT, this);
+
         } else {
+
             g.setColor(Color.cyan);
+
             g.fillRect(0, 0, WIDTH, HEIGHT);
+
         }
+
+
 
         BufferedImage currentPlayerImage;
+
         if (jumping) {
+
             currentPlayerImage = playerImageJump;
+
         } else if (movingLeft) {
+
             currentPlayerImage = playerImageLeft;
+
         } else if (movingRight) {
+
             currentPlayerImage = playerImageRight;
+
         } else {
+
             currentPlayerImage = playerImageStand;
+
         }
+
+
 
         if (currentPlayerImage != null) {
+
             g.drawImage(currentPlayerImage, (int) (playerX - mapOffsetX), (int) playerY, PLAYER_SIZE, PLAYER_SIZE, this);
+
         }
+
+
 
         if (obstacleImage != null) {
+
             for (Rectangle obs : obstacles) {
+
                 g.drawImage(obstacleImage, (int) (obs.x - mapOffsetX), (int) obs.y, obs.width, obs.height, this);
+
             }
+
         }
+
+
 
         g.setColor(Color.green);
+
         g.fillRect((int) (goal.x - mapOffsetX), (int) goal.y, goal.width, goal.height);
 
+
+
         if (heartImage != null) {
+
             int heartSize = 40;
+
             for (int i = 0; i < lives; i++) {
+
                 g.drawImage(heartImage, WIDTH - (i + 1) * (heartSize + 5), 10, heartSize, heartSize, this);
+
             }
+
         }
+
+
 
         if (gameWon) {
+
             g.setColor(Color.black);
+
             g.drawString("¡Has ganado! Presiona 'R' para reiniciar.", WIDTH / 2 - 150, HEIGHT / 2);
+
         } else if (gameOver) {
+
             g.setColor(Color.black);
+
             g.drawString("Game Over! Presiona 'R' para reiniciar.", WIDTH / 2 - 150, HEIGHT / 2);
+
         }
+
     }
 
+
+
     @Override
+
     public void actionPerformed(ActionEvent e) {
-        if (gameWon || gameOver) return;
+
+        if (inMenu || gameWon || gameOver) return;
+
+
 
         if (inKnockback) {
+
             knockbackDuration--;
+
             if (knockbackDuration <= 0) {
+
                 inKnockback = false;
+
             }
+
         }
+
+
 
         velocityY += GRAVITY;
+
         playerY += velocityY;
 
+
+
         if (playerY >= HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE) {
+
             playerY = HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE;
+
             velocityY = 0;
+
             jumping = false;
+
         }
+
+
 
         if (movingLeft) {
+
             playerSpeedX -= ACCELERATION_X;
+
         } else if (movingRight) {
+
             playerSpeedX += ACCELERATION_X;
+
         } else {
+
             if (playerSpeedX > 0) {
+
                 playerSpeedX = Math.max(0, playerSpeedX - DECELERATION_X);
+
             } else if (playerSpeedX < 0) {
+
                 playerSpeedX = Math.min(0, playerSpeedX + DECELERATION_X);
+
             }
+
         }
+
+
 
         playerSpeedX = Math.max(-MAX_SPEED_X, Math.min(MAX_SPEED_X, playerSpeedX));
+
         playerX += playerSpeedX;
 
+
+
         for (Rectangle obs : obstacles) {
+
             if (obs instanceof MovingObstacle) {
+
                 ((MovingObstacle) obs).update();
+
             }
+
         }
+
+
 
         checkCollisions();
 
+
+
         if (playerX + PLAYER_SIZE > goal.x && playerX < goal.x + GOAL_SIZE &&
+
             playerY + PLAYER_SIZE > goal.y && playerY < goal.y + GOAL_SIZE) {
+
             level++;
+
             if (level > 3) {
+
                 level = 3;
+
                 gameWon = true;
+
                 timer.stop();
+
             } else {
+
                 initializeLevel(level);
+
                 playerX = 0;
+
                 playerY = HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE;
+
             }
+
         }
+
+
 
         if (lives <= 0) {
+
             gameOver = true;
+
             timer.stop();
+
         }
+
+
 
         repaint();
+
     }
+
+
 
     private void checkCollisions() {
+
         Rectangle playerRect = new Rectangle((int) playerX, (int) playerY, PLAYER_SIZE, PLAYER_SIZE);
 
+
+
         for (Rectangle obs : obstacles) {
+
             Rectangle obsRect = new Rectangle((int) obs.x, (int) obs.y, obs.width, obs.height);
 
+
+
             if (playerRect.intersects(obsRect)) {
-                // Colisión desde abajo
+
                 if (velocityY > 0 && playerY + PLAYER_SIZE > obs.y && playerY < obs.y + obs.height) {
+
                     playerY = obs.y - PLAYER_SIZE;
-                    velocityY = -JUMP_STRENGTH * 1f; // Rebote más fuerte hacia arriba
-                    playerSpeedX *= -10f; // Cambio de dirección más pronunciado
+
+                    velocityY = -JUMP_STRENGTH * 1f;
+
+                    playerSpeedX *= -10f;
+
                     lives--;
-                }
-                // Colisión desde arriba
-                else if (velocityY < 0 && playerY < obs.y + obs.height && playerY + PLAYER_SIZE > obs.y) {
+
+                } else if (velocityY < 0 && playerY < obs.y + obs.height && playerY + PLAYER_SIZE > obs.y) {
+
                     playerY = obs.y + obs.height;
-                    velocityY = JUMP_STRENGTH * 10f; // Impulso más fuerte hacia abajo
-                    playerSpeedX *= -10f; // Cambio de dirección más pronunciado
+
+                    velocityY = JUMP_STRENGTH * 10f;
+
+                    playerSpeedX *= -10f;
+
                     lives--;
-                }
-                // Colisión lateral
-                else if (playerSpeedX != 0) {
-                    if (playerSpeedX > 0) { // Movimiento hacia la derecha
+
+                } else if (playerSpeedX != 0) {
+
+                    if (playerSpeedX > 0) {
+
                         playerX = obs.x - PLAYER_SIZE;
-                        playerSpeedX = -MAX_SPEED_X * 10f; // Rebote fuerte hacia la izquierda
-                    } else { // Movimiento hacia la izquierda
+
+                        playerSpeedX = -MAX_SPEED_X * 10f;
+
+                    } else {
+
                         playerX = obs.x + obs.width;
-                        playerSpeedX = MAX_SPEED_X * 1.5f; // Rebote fuerte hacia la derecha
+
+                        playerSpeedX = MAX_SPEED_X * 1.5f;
+
                     }
-                    velocityY = -JUMP_STRENGTH * -1f; // Salto más alto al colisionar lateralmente
+
+                    velocityY = -JUMP_STRENGTH * -1f;
+
                     lives--;
+
                 }
+
                 
+
                 startKnockback();
-                break; // Salir del bucle después de la primera colisión
+
+                break;
+
             }
+
         }
-    }
-    
-    private void startKnockback() {
-        inKnockback = true;
-        knockbackDuration = MAX_KNOCKBACK_DURATION;
+
     }
 
-    @Override
-    public void keyPressed(KeyEvent e) {
-        int keyCode = e.getKeyCode();
-        if (keyCode == KeyEvent.VK_LEFT) {
-            movingLeft = true;
-        } else if (keyCode == KeyEvent.VK_RIGHT) {
-            movingRight = true;
-        } else if (keyCode == KeyEvent.VK_UP && !jumping && playerY == HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE) {
-            jumping = true;
-            velocityY = -JUMP_STRENGTH;
-        } else if (keyCode == KeyEvent.VK_R && (gameOver || gameWon)) {
-            resetGame();
-        }
+    
+
+    private void startKnockback() {
+
+        inKnockback = true;
+
+        knockbackDuration = MAX_KNOCKBACK_DURATION;
+
     }
+
+
+
+    @Override
+
+    public void keyPressed(KeyEvent e) {
+
+        int keyCode = e.getKeyCode();
+
+        if (inMenu) {
+
+            handleMenuKeyPress(keyCode);
+
+        } else {
+
+            handleGameKeyPress(keyCode);
+
+        }
+
+    }
+
+
+
+    private void handleMenuKeyPress(int keyCode) {
+
+        if (keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_DOWN) {
+
+            menuSelection = 1 - menuSelection;
+
+        } else if (keyCode == KeyEvent.VK_ENTER) {
+
+            if (menuSelection == 0) {
+
+                inMenu = false;
+
+                resetGame();
+
+            } else if (menuSelection == 1) {
+
+                System.exit(0);
+
+            }
+
+        }
+
+    }
+
+
+
+    private void handleGameKeyPress(int keyCode) {
+
+        if (keyCode == KeyEvent.VK_LEFT) {
+
+            movingLeft = true;
+
+        } else if (keyCode == KeyEvent.VK_RIGHT) {
+
+            movingRight = true;
+
+        } else if (keyCode == KeyEvent.VK_UP && !jumping && playerY == HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE) {
+
+            jumping = true;
+
+            velocityY = -JUMP_STRENGTH;
+
+        } else if (keyCode == KeyEvent.VK_R && (gameOver || gameWon)) {
+
+            resetGame();
+
+        }
+
+    }
+
+
 
     private void resetGame() {
+
         level = 1;
+
         lives = 3;
+
         gameWon = false;
+
         gameOver = false;
+
         initializeLevel(level);
+
         playerX = 0;
+
         playerY = HEIGHT - FLOOR_HEIGHT - PLAYER_SIZE;
+
         playerSpeedX = 0;
+
         velocityY = 0;
+
         jumping = false;
+
         inKnockback = false;
+
         knockbackDuration = 0;
+
         timer.start();
+
     }
 
+
+
     @Override
+
     public void keyReleased(KeyEvent e) {
+
         int keyCode = e.getKeyCode();
+
         if (keyCode == KeyEvent.VK_LEFT) {
+
             movingLeft = false;
+
         } else if (keyCode == KeyEvent.VK_RIGHT) {
+
             movingRight = false;
+
         }
+
     }
 
+
+
     @Override
+
     public void keyTyped(KeyEvent e) {
+
         // No se necesita implementar para este juego
+
     }
+
+
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Juego de Aventuras");
-        JuegoAventuras game = new JuegoAventuras();
-        frame.add(game);
-        frame.pack();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
+
+        SwingUtilities.invokeLater(() -> {
+
+            JFrame frame = new JFrame("Juego de Aventuras");
+
+            JuegoAventuras game = new JuegoAventuras();
+
+            frame.add(game);
+
+            frame.pack();
+
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            frame.setLocationRelativeTo(null);
+
+            frame.setVisible(true);
+
+        });
+
     }
+
 }
